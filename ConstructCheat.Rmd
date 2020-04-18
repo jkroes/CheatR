@@ -1,12 +1,15 @@
 ---
-title: "R Cheatsheet"
 output:
   html_document:
     highlight: pygments
 params:
   file: NULL
   sheet: NULL
+  title: NULL
+title: "`r params$title`"
 ---
+<!-- https://stackoverflow.com/questions/31861569/setting-document-title-in-rmarkdown-from-parameters -->
+
 
 <!-- https://stackoverflow.com/questions/14695892/change-code-block-color-in-knitr-markdown -->
 <style>

@@ -49,6 +49,10 @@ ez.csf <- function() {
 }
 
 option_list = list(
+  optparse::make_option(c("-t", "--title"),
+                        type = "character",
+                        default = NULL,
+                        help = "Cheatsheet title."),
   optparse::make_option(c("-i", "--input"),
                         type = "character",
                         default = NULL,
@@ -66,15 +70,20 @@ option_list = list(
 opt_parser <- optparse::OptionParser(option_list = option_list)
 opt <- optparse::parse_args(opt_parser)
 
+if (is.null(opt$title)) {
+  optparse::print_help(opt_parser)
+  stop("Title is missing.")
+}
+
 if (is.null(opt$input)) {
-  print_help(opt_parser)
+  optparse::print_help(opt_parser)
   stop("Input is missing.")
 }
 
 # Normalized path required for file.access
 input <- normalizePath(opt$input)
 if (!(file.access(input, 4) + 1)) {
-  print_help(opt_parser)
+  optparse::print_help(opt_parser)
   stop("Input is not readable. Does it exist?")
 }
 
@@ -91,7 +100,7 @@ if (!is.null(opt$output)) {
 rmarkdown::render(input = file.path(dirname(ez.csf()), "ConstructCheat.Rmd"),
                   output_file = output,
                   output_dir = outdir,
-                  params = list(file = input, sheet = opt$sheet))
+                  params = list(file = input, sheet = opt$sheet, title = opt$title))
 
 # Remove the intermediate markdown file created by ConstructCheat.Rmd
 file.remove(file.path(dirname(ez.csf()), "__temp__.html"))
