@@ -1,0 +1,19 @@
+Description,Code
+*Help,
+Help on help,help()
+Help on object*,help(topic = help)
+,"?""+"""
+Help on unloaded object,"help(filter, package = dplyr)"
+"Package index (HTML, including links within RStudio, to functions, vignettes, etc.)",help(package = dplyr)
+Package index (text-based),library(help = dplyr)
+Help on package**,help(dplyr)
+Run example code from object's help,example(filter)
+List all packages' vignettes,browseVignettes()
+View package vignettes,"browseVignettes(""dplyr"")
+Apples"
+List all packages' demos,demo()
+View demo,"demo(""graphics"")"
+Search for objects by substring/regex,"apropos(""list"")"
+Find source for objects,"find(""within.list"")"
+****Test,
+apples,help(topic = help)
