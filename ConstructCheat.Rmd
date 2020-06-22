@@ -4,7 +4,6 @@ output:
     highlight: pygments
 params:
   file: NULL
-  sheet: NULL
   title: NULL
 title: "`r params$title`"
 ---
@@ -38,12 +37,10 @@ knitr::opts_chunk$set(echo = T, message = F, warning = F)
 ```{r, echo=F}
 library(glue)
 library(tidyverse)
-library(readxl)
 library(htmltools)
 library(magrittr)
-library(googlesheets4)
 library(rlist)
-library(readODS)
+library(knitr)
 
 # https://stackoverflow.com/questions/9281323/zip-or-enumerate-in-r
 zip <- function(...) {
@@ -56,8 +53,9 @@ chunk <- function(x) {
   # Glue treats double bracket as literals
   gsub("{", "{{", x, fixed = T) %>%
     gsub("}", "}}", ., fixed = T) %>% {
-      glue("\n\n```{{r echo=T, eval=F}}\n{.}\n```\n\n") # Two newlines needed: 
-      # "Leading whitespace and blank lines from the first and last lines are automatically trimmed."
+      glue("\n\n```{{r echo=T, eval=F}}\n{.}\n```\n\n") # Two newlines needed:
+      # "Leading whitespace and blank lines from the first and last lines are
+      # automatically trimmed."
       # And Rmarkdown requires chunks on and at the start of their own lines.
     }
 }
@@ -65,46 +63,44 @@ chunk <- function(x) {
 # https://stackoverflow.com/questions/10937218/how-to-show-multiline-text-in-a-table-cell
 data_to_html <- function(df) {
   tags$table(class="table",  # Bootstrap class used by rmarkdown
-             tags$tbody(
-               apply(df, 1, function(row) {
-                 # Can this be applied to the row instead?
-                 # if (grepl("\n", row["Code"])) td_args$style <- "white-space:pre"
-                 
-                 row["Code"] %<>% chunk
-                 
-                 # td_args <- list(class="col-xs-6")
-                 # tags$tr(lapply(row, function(x) do.call(tags$td, c(td_args, x))))
-                 
-                 # https://www.w3schools.com/bootstrap/bootstrap_grid_system.asp
-                 # Bootstrap column classes indicate how many of 12 columns to span
-                 tags$tr(tags$td(class="col-xs-8", unname(row["Description"])),
-                         tags$td(class="col-xs-4", unname(row["Code"]))
-                 )
-               })
-             )
+     tags$tbody(
+       apply(df, 1, function(row) {
+         # Can this be applied to the row instead?
+         # if (grepl("\n", row["Code"])) td_args$style <- "white-space:pre"
+
+         row["Code"] %<>% chunk
+
+         # td_args <- list(class="col-xs-6")
+         # tags$tr(lapply(row, function(x) do.call(tags$td, c(td_args, x))))
+
+         # https://www.w3schools.com/bootstrap/bootstrap_grid_system.asp
+         # Bootstrap column classes indicate how many of 12 columns to span
+         tags$tr(tags$td(class="col-xs-8", unname(row["Description"])),
+                 tags$td(class="col-xs-4", unname(row["Code"]))
+         )
+       })
+     )
   )
 }
 
-# TODO: For each cheat sheet, change privacy to allow anyone with link to view
+# Debugging purposes
+# params <- list()
+# params$file <- "RCheat.csv"
 
-# Downloaded from RCheat google sheet
-# sheets_deauth() # No need to authenticate for sheets that are readably by anyone with the link
-# uri <- "https://docs.google.com/spreadsheets/d/15qbAr-6b3qBBi-6iv60NbfJ1eLC3eeqM8PIU0DZxup0/edit#gid=0"
-# data <- read_sheet(uri, sheet = "Cheat") %>%
-#   replace_na(list(Description=""))
-#cheatsheet <- "/Users/justinkroes/Sync/Cheat/RCheat.xlsx"
-data <- read_excel(params$file, sheet = params$sheet)
+# Read data
+data <- read_csv(params$file)
 
 # Extract headers
 headers <- filter(data, str_detect(Description, "^\\*"))
 
+# Extract tables for each header
 split_data <- data %>%
   # Get row number of header rows
   mutate(x = ifelse(str_detect(data$Description, "^\\*.+"), row_number(), NA)) %>%
   # Group rows using each header's row number
   fill(x) %>%
   # Remove header rows
-  anti_join(headers, by = "Description") %>% 
+  anti_join(headers, by = "Description") %>%
   # Split non-headers based on groups
   split(.$x) %>%
   # Remove groups (column)
@@ -113,26 +109,35 @@ split_data <- data %>%
 # Construct HTML headers
 header_text <- gsub("*", "", headers$Description, fixed = T)
 header_levels <- paste0("h", str_count(headers$Description, "\\*"))
-html_headers <- mapply(function(x,y) do.call(eval(parse(text=x)), list(y)), 
-                       header_levels, 
+html_headers <- mapply(function(x,y) do.call(eval(parse(text=x)), list(y)),
+                       header_levels,
                        header_text,
-                       SIMPLIFY = F, 
+                       SIMPLIFY = F,
                        USE.NAMES = F)
-# html_headers <- lapply(names(split_data), h1)
 
+# Construct html tables
 html_tables <- lapply(split_data, data_to_html)
+
+# Save mixed HTML and markdown to file
 list.zip(html_headers, html_tables) %>%
-  tags$body(.) %>% # Apparently flattens nested lists
+  # Flatten the nested list into tag
+  tags$body(.) %>%
+  # Remove outer body tags
   as.character %>%
-  sub("\n</body>", "", .) %>% # Remove outer body tags
+  sub("\n</body>", "", .) %>%
   sub("<body>\n", "", .) %>%
-  writeLines("__temp__.html") # Write as-is; compare to save_html
+  # Remove leading space to avoid pandoc enclosing html tags
+  # in <pre><code>
+  sub("^\\s*", "", .) %>%
+  gsub("\n\\s*", "\n", .) %>%
+  #writeLines("__temp__.html") # Write as-is; compare to save_html
+  writeLines("__temp__.Rmd") # Write as-is; compare to save_html
 
 # TODO: Enable footnotes from Footnotes sheet
 # https://html.com/tags/sup/
 ```
 
-```{r child="__temp__.html"}
+<!-- Evalute markdown within mixed html and markdown file -->
+```{r child="__temp__.Rmd"}
 ```
-
 <!-- TODO: Consider using fixed width columns to maintain consistent widths across tables -->

@@ -1,7 +1,5 @@
 #!/usr/bin/env Rscript
 
-# My cheatsheets are stored in ~/Sync/cheatsheets
-
 # https://stackoverflow.com/questions/1815606/determine-path-of-the-executing-script
 #' current script file (in full path)
 #' @description current script file (in full path)
@@ -53,18 +51,26 @@ option_list = list(
                         type = "character",
                         default = NULL,
                         help = "Cheatsheet title."),
-  optparse::make_option(c("-i", "--input"),
-                        type = "character",
-                        default = NULL,
-                        help = "Input spreadsheet path. Relative paths to the working directory may be specified."),
-  optparse::make_option(c("-s", "--sheet"),
-                        type = "character",
-                        default = "Cheat",
-                        help = "Sheet name"),
-  optparse::make_option(c("-o", "--output"),
-                        type = "character",
-                        default = NULL,
-                        help = "Output cheatsheet name or path (relative or absolute). If NULL, the output file will be named after the input file. If NULL or the file extension is missing, an extension will be added based on the output format.")
+  optparse::make_option(
+    c("-i", "--input"),
+    type = "character",
+    default = NULL,
+    help = paste(
+      "Input spreadsheet path. Relative paths to the working directory may be",
+      "specified."
+    )
+  ),
+  optparse::make_option(
+    c("-o", "--output"),
+    type = "character",
+    default = NULL,
+    help = paste(
+      "Output cheatsheet name or path (relative or absolute). If NULL, the",
+      "output file will be named after the input file. If NULL or the file",
+      "extension is missing, an extension will be added based on the output",
+      "format."
+    )
+  )
 )
 
 opt_parser <- optparse::OptionParser(option_list = option_list)
@@ -96,11 +102,11 @@ if (!is.null(opt$output)) {
   output <- tools::file_path_sans_ext(input)
   outdir <- dirname(input)
 }
-  
+
 rmarkdown::render(input = file.path(dirname(ez.csf()), "ConstructCheat.Rmd"),
                   output_file = output,
                   output_dir = outdir,
-                  params = list(file = input, sheet = opt$sheet, title = opt$title))
+                  params = list(file = input, title = opt$title))
 
 # Remove the intermediate markdown file created by ConstructCheat.Rmd
-file.remove(file.path(dirname(ez.csf()), "__temp__.html"))
+# file.remove(file.path(dirname(ez.csf()), "__temp__.html"))
